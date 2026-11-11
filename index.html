@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>행맨으로 영단어 깨우치기</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --text-light: #64748b;
+            --border-color: #e2e8f0;
+            --danger-color: #ef4444;
+            --success-color: #22c55e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 600px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            margin-bottom: 24px;
+        }
+
+        /* 탭 메뉴 */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: 2px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-light);
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            border-color: var(--primary-color);
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        /* 행맨 그림 영역 */
+        .hangman-box {
+            margin-bottom: 20px;
+        }
+
+        svg {
+            width: 150px;
+            height: 150px;
+        }
+
+        .hangman-part {
+            stroke: var(--text-color);
+            stroke-width: 4;
+            stroke-linecap: round;
+            fill: none;
+            display: none;
+        }
+
+        /* 단어 칸 */
+        .word-display {
+            font-size: 2rem;
+            letter-spacing: 6px;
+            font-weight: bold;
+            margin: 20px 0;
+            font-family: monospace;
+            color: var(--text-color);
+        }
+
+        .hint-text {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        /* 키보드 버튼 영역 */
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .keyboard {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+
+        .key-btn {
+            background-color: #f1f5f9;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 0;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .key-btn:hover:not(:disabled) {
+            background-color: #e2e8f0;
+        }
+
+        .key-btn:disabled {
+            background-color: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            border-color: transparent;
+        }
+
+        /* 결과 학습 패널 */
+        .result-panel {
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: left;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-panel h3 {
+            margin-bottom: 12px;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .vocab-detail p {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .vocab-detail strong {
+            color: var(--text-color);
+        }
+
+        .dict-link {
+            display: inline-block;
+            margin-top: 12px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .dict-link:hover {
+            text-decoration: underline;
+        }
+
+        .restart-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .restart-btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* 랭킹 화면 */
+        .ranking-list {
+            list-style: none;
+            text-align: left;
+            margin-top: 15px;
+        }
+
+        .ranking-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.95rem;
+        }
+
+        .ranking-item:nth-child(odd) {
+            background-color: #f8fafc;
+        }
+        
+        .nickname-input-box {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .nickname-input-box input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .nickname-input-box button {
+            padding: 8px 16px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>행맨으로 영단어 깨우치기</h1>
+            <p>매일 새롭게 찾아오는 중·최상급 영단어 챌린지!</p>
+        </header>
+
+        <!-- 탭 메뉴 -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('game')">게임하기</button>
+            <button class="tab-btn" onclick="switchTab('ranking')">명예의 전당</button>
+        </div>
+
+        <!-- 게임 섹션 -->
+        <div id="game-view" class="view-section active">
+            <!-- 행맨 SVG 그림 -->
+            <div class="hangman-box">
+                <svg viewBox="0 0 150 150">
+                    <!-- 교수대 구조물 -->
+                    <line x1="20" y1="140" x2="100" y2="140" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+                    <line x1="60" y1="20" x2="60" y2="140" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+                    <line x1="60" y1="20" x2="120" y2="20" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+                    <line x1="120" y1="20" x2="120" y2="40" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+                    
+                    <!-- 행맨 파츠 (틀릴 때마다 순서대로 표시) -->
+                    <circle id="part-0" class="hangman-part" cx="120" cy="55" r="12" /> <!-- 머리 -->
+                    <line id="part-1" class="hangman-part" x1="120" y1="67" x2="120" y2="100" /> <!-- 몸통 -->
+                    <line id="part-2" class="hangman-part" x1="120" y1="75" x2="95" y2="90" /> <!-- 왼팔 -->
+                    <line id="part-3" class="hangman-part" x1="120" y1="75" x2="145" y2="90" /> <!-- 오른팔 -->
+                    <line id="part-4" class="hangman-part" x1="120" y1="100" x2="100" y2="130" /> <!-- 왼다리 -->
+                    <line id="part-5" class="hangman-part" x1="120" y1="100" x2="140" y2="130" /> <!-- 오른다리 -->
+                </svg>
+            </div>
+
+            <div class="hint-text" id="hint-text">뜻 힌트: -</div>
+            <div class="word-display" id="word-display">_ _ _ _</div>
+            
+            <div class="keyboard" id="keyboard"></div>
+
+            <!-- 결과 및 학습 패널 -->
+            <div class="result-panel" id="result-panel">
+                <h3 id="result-title">게임 결과</h3>
+                <div class="vocab-detail" id="vocab-detail">
+                    <!-- 상세 학습 내용 삽입 -->
+                </div>
+                
+                <div id="score-save-area" style="margin-top: 15px; display: none;">
+                    <div class="nickname-input-box">
+                        <input type="text" id="nickname-input" placeholder="사용할 닉네임 입력" maxlength="10">
+                        <button onclick="saveScore()">기록 저장</button>
+                    </div>
+                </div>
+
+                <button class="restart-btn" onclick="initGame()">다음 단어 연습하기</button>
+            </div>
+        </div>
+
+        <!-- 랭킹 섹션 -->
+        <div id="ranking-view" class="view-section">
+            <h3>단어 마스터 명예의 전당</h3>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 5px;">성공 여부와 남은 시도 횟수로 기록됩니다.</p>
+            <ul class="ranking-list" id="ranking-list">
+                <!-- 랭킹 목록 삽입 -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 중 ~ 최상급 영단어 데이터베이스 (매일 변경되거나 새로 로드됨)
+        const vocabList = [
+            {
+                word: "AMBIGUOUS",
+                meaning: "애매모호한, 여러 가지로 해석할 수 있는",
+                synonyms: "vague, equivocal, obscure",
+                antonyms: "clear, unambiguous, explicit",
+                example: "His ambiguous reply left us in doubt about his actual intentions."
+            },
+            {
+                word: "METICULOUS",
+                meaning: "꼼꼼한, 세심한",
+                synonyms: "thorough, scrupulous, diligent",
+                antonyms: "careless, sloppy, negligent",
+                example: "The artist restored the ancient painting with meticulous care."
+            },
+            {
+                word: "PRAGMATIC",
+                meaning: "실용적인, 실천적인",
+                synonyms: "practical, realistic, utilitarian",
+                antonyms: "impractical, idealistic, utopian",
+                example: "We need a pragmatic approach to solve this financial crisis."
+            },
+            {
+                word: "RESILIENT",
+                meaning: "회복력 있는, 탄력 있는",
+                synonyms: "flexible, hardy, buoyant",
+                antonyms: "fragile, vulnerable, rigid",
+                example: "Children are often far more resilient than adults after a crisis."
+            },
+            {
+                word: "CANDID",
+                meaning: "솔직한, 정직한",
+                synonyms: "frank, open, truthful",
+                antonyms: "evasive, insincere, secretive",
+                example: "She gave a candid interview about her struggles with fame."
+            },
+            {
+                word: "EPHEMERAL",
+                meaning: "일시적인, 덧없는",
+                synonyms: "transitory, fleeting, short-lived",
+                antonyms: "permanent, enduring, perpetual",
+                example: "Fame in the digital age can be remarkably ephemeral."
+            },
+            {
+                word: "UBIQUITOUS",
+                meaning: "어디에나 존재하는, 흔한",
+                synonyms: "omnipresent, pervasive, universal",
+                antonyms: "rare, scarce, limited",
+                example: "Smartphones have become ubiquitous in modern society."
+            }
+        ];
+
+        let currentWordObj = {};
+        let guessedLetters = new Set();
+        let wrongAttempts = 0;
+        const maxWrong = 6;
+        let gameCompleted = false;
+
+        // 오늘 날짜를 기반으로 일일 단어 선정 (매일 고정된 단어 제공)
+        function getDailyWord() {
+            const today = new Date();
+            const index = (today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate()) % vocabList.length;
+            return vocabList[index];
+        }
+
+        function initGame() {
+            currentWordObj = getDailyWord();
+            guessedLetters.clear();
+            wrongAttempts = 0;
+            gameCompleted = false;
+
+            // UI 초기화
+            document.getElementById('result-panel').style.display = 'none';
+            document.getElementById('score-save-area').style.display = 'none';
+            document.getElementById('hint-text').innerText = `뜻 힌트: ${currentWordObj.meaning}`;
+            
+            // 행맨 파츠 숨기기
+            for (let i = 0; i < maxWrong; i++) {
+                document.getElementById(`part-${i}`).style.display = 'none';
+            }
+
+            createKeyboard();
+            updateWordDisplay();
+        }
+
+        // 키보드 버튼 생성
+        function createKeyboard() {
+            const keyboard = document.getElementById('keyboard');
+            keyboard.innerHTML = '';
+            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+            for (let char of alphabet) {
+                const btn = document.createElement('button');
+                btn.classList.add('key-btn');
+                btn.innerText = char;
+                btn.id = `key-${char}`;
+                btn.onclick = () => handleGuess(char);
+                keyboard.appendChild(btn);
+            }
+        }
+
+        // 글자 맞히기 로직
+        function handleGuess(letter) {
+            if (gameCompleted || guessedLetters.has(letter)) return;
+
+            guessedLetters.add(letter);
+            const btn = document.getElementById(`key-${letter}`);
+            btn.disabled = true;
+
+            if (currentWordObj.word.includes(letter)) {
+                updateWordDisplay();
+                checkWinCondition();
+            } else {
+                document.getElementById(`part-${wrongAttempts}`).style.display = 'block';
+                wrongAttempts++;
+                checkLossCondition();
+            }
+        }
+
+        // 단어 표시 업데이트
+        function updateWordDisplay() {
+            const display = currentWordObj.word
+                .split('')
+                .map(letter => guessedLetters.has(letter) ? letter : '_')
+                .join(' ');
+            document.getElementById('word-display').innerText = display;
+        }
+
+        // 승리 조건 체크
+        function checkWinCondition() {
+            const hasWon = currentWordObj.word.split('').every(letter => guessedLetters.has(letter));
+            if (hasWon) {
+                endGame(true);
+            }
+        }
+
+        // 패배 조건 체크
+        function checkLossCondition() {
+            if (wrongAttempts >= maxWrong) {
+                endGame(false);
+            }
+        }
+
+        // 게임 종료 처리
+        function endGame(isSuccess) {
+            gameCompleted = true;
+            
+            // 남은 모든 키 비활성화
+            const buttons = document.querySelectorAll('.key-btn');
+            buttons.forEach(btn => btn.disabled = true);
+
+            // 결과 패널 채우기
+            const titleEl = document.getElementById('result-title');
+            titleEl.innerText = isSuccess ? "🎉 정답입니다! 축하합니다!" : "❌ 아쉽네요! 다음 기회에!";
+            titleEl.style.color = isSuccess ? "var(--success-color)" : "var(--danger-color)";
+
+            const detailEl = document.getElementById('vocab-detail');
+            const dictUrl = `https://en.dict.naver.com/#/search?query=${encodeURIComponent(currentWordObj.word)}`;
+
+            detailEl.innerHTML = `
+                <p><strong>정답 단어:</strong> ${currentWordObj.word}</p>
+                <p><strong>의미:</strong> ${currentWordObj.meaning}</p>
+                <p><strong>유의어:</strong> ${currentWordObj.synonyms}</p>
+                <p><strong>반의어:</strong> ${currentWordObj.antonyms}</p>
+                <p><strong>사용 예문:</strong> "${currentWordObj.example}"</p>
+                <a href="${dictUrl}" target="_blank" class="dict-link">🔍 네이버 영어사전에서 자세히 보기 &rarr;</a>
+            `;
+
+            document.getElementById('result-panel').style.display = 'block';
+            
+            if (isSuccess) {
+                document.getElementById('score-save-area').style.display = 'block';
+            }
+        }
+
+        // 탭 전환 기능
+        function switchTab(tabName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            if (tabName === 'game') {
+                document.getElementById('game-view').classList.add('active');
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            } else {
+                document.getElementById('ranking-view').classList.add('active');
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                renderRanking();
+            }
+        }
+
+        // 점수 저장 (개인정보 수집 없음, 로컬 스토리지 활용)
+        function saveScore() {
+            const nicknameInput = document.getElementById('nickname-input');
+            const nickname = nicknameInput.value.trim() || "익명의 도전자";
+            
+            const scoreData = {
+                nickname: nickname,
+                remainingTries: maxWrong - wrongAttempts,
+                date: new Date().toLocaleDateString()
+            };
+
+            let rankings = JSON.parse(localStorage.getItem('hangman_rankings') || '[]');
+            rankings.push(scoreData);
+            // 남은 시도 횟수가 많은 순으로 정렬
+            rankings.sort((a, b) => b.remainingTries - a.remainingTries);
+            
+            // 상위 10개만 유지
+            rankings = rankings.slice(0, 10);
+            localStorage.setItem('hangman_rankings', JSON.stringify(rankings));
+
+            alert("기록이 성공적으로 저장되었습니다!");
+            document.getElementById('score-save-area').style.display = 'none';
+            switchTab('ranking');
+        }
+
+        // 랭킹 렌더링
+        function renderRanking() {
+            const listEl = document.getElementById('ranking-list');
+            const rankings = JSON.parse(localStorage.getItem('hangman_rankings') || '[]');
+
+            if (rankings.length === 0) {
+                listEl.innerHTML = `<li style="text-align:center; padding: 20px; color: var(--text-light);">아직 등록된 기록이 없습니다. 게임을 완료하고 첫 기록을 남겨보세요!</li>`;
+                return;
+            }
+
+            listEl.innerHTML = rankings.map((item, index) => `
+                <li class="ranking-item">
+                    <span><strong>${index + 1}위</strong> ${item.nickname}</span>
+                    <span>잔여 기회: <strong>${item.remainingTries}회</strong> (${item.date})</span>
+                </li>
+            `).join('');
+        }
+
+        // 앱 초기 실행
+        window.onload = function() {
+            initGame();
+        };
+    </script>
+</body>
+</html>
